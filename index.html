@@ -27,12 +27,17 @@
     font-display: swap;
   }
   html, body { margin: 0; padding: 0; background: #F8F7F3; }
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100svh;
+  }
   .hero {
     position: relative;
+    flex: 1 1 auto;
     width: 100%;
-    height: 100vh;
-    height: 100svh;
-    min-height: 520px;
+    min-height: 480px;
     overflow: hidden;
     background-color: #F8F7F3;
   }
@@ -78,6 +83,28 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
   }
+  .legal {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 14px 24px 15px;
+    border-top: 1px solid rgba(27, 74, 140, 0.28);
+    background: #F8F7F3;
+    color: #1B4A8C;
+    font-family: 'Archivo', 'Arial', sans-serif;
+    font-weight: 600;
+    font-stretch: 125%;
+    font-size: 10.5px;
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+  .legal .sep { margin: 0 0.9em; opacity: 0.45; }
+  @media (max-width: 640px) {
+    .legal { padding: 12px 16px 14px; font-size: 9.5px; }
+    .legal span:not(.sep) { display: block; }
+    .legal .sep { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -90,6 +117,9 @@
     <p>Capital</p>
   </div>
 </main>
+<footer class="legal">
+  <span>&copy; 2026 Rune Capital, LLC</span><span class="sep" aria-hidden="true">|</span><span>All Rights Reserved</span><span class="sep" aria-hidden="true">|</span><span>West 16th Street, New York, NY, 10011</span>
+</footer>
 <script src="assets/engraving-scene.js?v=03eb15b5"></script>
 <script>
   new EngravingScene({
