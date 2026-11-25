@@ -3,12 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RUNE — Financial Services for the Compute Age</title>
-<meta name="description" content="RUNE. Financial Services for the Compute Age.">
+<title>RUNE</title>
 <link rel="canonical" href="https://runecapital.co/">
 <meta property="og:url" content="https://runecapital.co/">
 <meta property="og:title" content="RUNE">
-<meta property="og:description" content="Financial Services for the Compute Age">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#5E8FD0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,9 +48,7 @@
     text-align: center;
     pointer-events: none;
   }
-  .copy h1,
-  .copy p,
-  .manifesto-link {
+  .copy h1 {
     margin: 0;
     font-family: Tinos, 'Times New Roman', Times, serif;
     font-weight: 400;
@@ -60,23 +56,6 @@
     color: #0B1431;
   }
   .copy h1 { font-size: clamp(104px, 17vw, 248px); line-height: 0.9; }
-  .copy p { max-width: 28em; font-size: clamp(15px, 5.2vw, 40px); line-height: 1.15; }
-  .manifesto-link {
-    position: absolute;
-    left: 50%;
-    bottom: clamp(18px, 3.4vh, 34px);
-    transform: translateX(-50%);
-    padding: 6px 10px;
-    font-size: clamp(17px, 1.6vw, 22px);
-    line-height: 1.2;
-    text-decoration: none;
-    text-decoration-color: #0B1431;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 6px;
-  }
-  .manifesto-link:hover,
-  .manifesto-link:focus-visible { text-decoration-line: underline; }
-  .manifesto-link:focus-visible { outline: 2px solid #0B1431; outline-offset: 2px; }
 </style>
 </head>
 <body>
@@ -85,9 +64,7 @@
   <canvas id="rune-canvas" aria-hidden="true"></canvas>
   <div class="copy">
     <h1 id="rune-title">RUNE</h1>
-    <p id="rune-tagline">Financial Services for the Compute Age</p>
   </div>
-  <a class="manifesto-link" id="rune-manifesto" href="manifesto/">Manifesto</a>
 </main>
 <script src="assets/rune-scene.js"></script>
 <script>
@@ -95,9 +72,7 @@
     canvas: document.getElementById('rune-canvas'),
     image: document.getElementById('rune-image'),
     textEls: [
-      { el: document.getElementById('rune-title'), target: 40 },
-      { el: document.getElementById('rune-tagline'), target: 20 },
-      { el: document.getElementById('rune-manifesto'), target: 18 }
+      { el: document.getElementById('rune-title'), target: 40 }
     ],
     textColor: '#0B1431',
     shadowColor: '#FFECDC',
