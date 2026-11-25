@@ -1,8 +1,8 @@
 /*
  * RUNE engraving scene (landing page).
  * The engraving is drawn in WebGL: the fine guilloche lines in the sky drift and undulate,
- * the harbour water ripples and carries moving glints, and the cursor sends out rings like a
- * finger drawn through still water, etched in the picture's own blue ink.
+ * the harbour water ripples and carries moving glints, and the cursor carries a soft loupe that
+ * magnifies the engraving a little and deepens its ink, like a print looked at under a glass.
  *
  * new EngravingScene({ canvas, image, mask, focusX, ink, paper })
  *   image, mask: <img> elements (same origin). mask: R = sky, G = water.
@@ -27,6 +27,7 @@
     'uniform float uAspect;',
     'uniform float uImgAspect;',
     'uniform vec2 uPos;',
+    'uniform vec2 uS;',
     'uniform float uTime;',
     'uniform float uDpr;',
     'uniform float uMotion;',
@@ -34,21 +35,17 @@
     'uniform vec3 uInk;',
     'uniform vec3 uPaper;',
     'uniform vec4 uRip[' + RIPPLES + '];',
-    '',
-    'vec2 scaleS() {',
-    '  vec2 s = vec2(1.0);',
-    '  if (uAspect > uImgAspect) { s.y = uImgAspect / uAspect; } else { s.x = uAspect / uImgAspect; }',
-    '  return s;',
-    '}',
+    'uniform vec2 uMouse;',
+    'uniform float uHover;',
+    'uniform float uPulse;',
     '',
     'void main() {',
     '  vec2 px = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);',
     '  vec2 uv = px / uRes;',
-    '  vec2 s = scaleS();',
+    '  vec2 s = uS;',
     '',
-    '  // ripples from the cursor (screen space, aspect corrected)',
+    '  // faint rings on the water (screen space, aspect corrected): they move the picture, nothing is drawn',
     '  vec2 rOff = vec2(0.0);',
-    '  float ring = 0.0;',
     '  for (int i = 0; i < ' + RIPPLES + '; i++) {',
     '    vec4 r = uRip[i];',
     '    float age = uTime - r.z;',
@@ -58,10 +55,16 @@
     '    float k = dist - age * 0.2;',
     '    float env = exp(-k * k / 0.0022) * exp(-age * 1.25) * r.w * smoothstep(0.0, 0.12, age);',
     '    float ph = k * 105.0;',
-    '    rOff += (d / max(dist, 0.0001)) * sin(ph) * env * 0.0055;',
-    '    ring += env * smoothstep(0.86, 1.0, cos(ph));',
+    '    rOff += (d / max(dist, 0.0001)) * sin(ph) * env * 0.0045;',
     '  }',
-    '  vec2 suv = uv - vec2(rOff.x / uAspect, rOff.y);',
+    '',
+    '  // the loupe: a soft-edged glass that follows the cursor',
+    '  vec2 dm = (uv - uMouse) * vec2(uAspect, 1.0);',
+    '  float R = 0.13;',
+    '  float prof = uHover * (1.0 - smoothstep(R * 0.5, R, length(dm)));',
+    '  float mag = 1.0 + (0.27 + 0.22 * uPulse) * prof;',
+    '  vec2 luv = uMouse + (uv - uMouse) / mag;',
+    '  vec2 suv = luv - vec2(rOff.x / uAspect, rOff.y);',
     '  vec2 iuv = suv * s + uPos * (1.0 - s);',
     '',
     '  vec4 m = texture2D(uMask, iuv);',
@@ -105,8 +108,16 @@
     '  float rowLine = 1.0 - smoothstep(0.0, 0.32, abs(fract(rows) - 0.5));',
     '  c = mix(c, uPaper, dash * rowLine * water * 0.4);',
     '',
-    '  // cursor rings, etched in the picture\'s ink',
-    '  c = mix(c, uInk, clamp(ring, 0.0, 1.0) * 0.38);',
+    '  // very wide screens: the plate fades into the paper at its sides; the sky lines carry on across',
+    '  float edge = uS.x > 1.0 ? smoothstep(0.0, 0.06, iuv.x) * (1.0 - smoothstep(0.94, 1.0, iuv.x)) : 1.0;',
+    '  if (edge < 0.999) {',
+    '    float band = 1.0 - smoothstep(0.30, 0.44, iuv.y);',
+    '    vec3 margin = mix(uPaper, pale, line * band * 0.55);',
+    '    c = mix(margin, c, edge);',
+    '  }',
+    '',
+    '  // under the loupe the engraved strokes read darker and crisper',
+    '  c = mix(c, c * c * 1.03, prof * 0.42);',
     '  gl_FragColor = vec4(c, 1.0);',
     '}'
   ].join('\n');
@@ -124,6 +135,7 @@
     this.rip = new Float32Array(RIPPLES * 4);
     this.ripIdx = 0;
     this.pos = [0.5, 0.5];
+    this.scale = [1, 1];
     this._boot();
   }
 
@@ -177,8 +189,8 @@
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     var U = {};
-    ['uImg', 'uMask', 'uRes', 'uAspect', 'uImgAspect', 'uPos', 'uTime', 'uDpr', 'uMotion', 'uTexel',
-      'uInk', 'uPaper', 'uRip'].forEach(function (n) { U[n] = gl.getUniformLocation(pr, n); });
+    ['uImg', 'uMask', 'uRes', 'uAspect', 'uImgAspect', 'uPos', 'uS', 'uTime', 'uDpr', 'uMotion', 'uTexel',
+      'uInk', 'uPaper', 'uRip', 'uMouse', 'uHover', 'uPulse'].forEach(function (n) { U[n] = gl.getUniformLocation(pr, n); });
     U.uRip = gl.getUniformLocation(pr, 'uRip[0]') || U.uRip;
     this.U = U;
     function tex(unit) {
@@ -203,30 +215,21 @@
 
   EngravingScene.prototype._initPointer = function () {
     var self = this, c = this.canvas;
-    this.ptr = { lastX: null, lastY: null, lastT: 0 };
-    var toUv = function (e) {
+    this.ptr = { x: 0.5, y: 0.5, sx: 0.5, sy: 0.5, hover: 0, target: 0, pulse: 0, has: false };
+    var move = function (e) {
       var r = c.getBoundingClientRect();
-      if (!r.width || !r.height) return null;
-      return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height, r.width / r.height];
-    };
-    c.addEventListener('pointermove', function (e) {
-      var p = toUv(e);
-      if (!p || !self.t0) return;
-      var now = (performance.now() - self.t0) / 1000;
+      if (!r.width || !r.height) return;
       var P = self.ptr;
-      if (P.lastX === null) { P.lastX = p[0]; P.lastY = p[1]; P.lastT = now; return; }
-      var dx = (p[0] - P.lastX) * p[2], dy = p[1] - P.lastY;
-      var dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > 0.05 || (dist > 0.012 && now - P.lastT > 0.22)) {
-        self.addRipple(p[0], p[1], Math.min(1, 0.35 + dist * 6));
-        P.lastX = p[0]; P.lastY = p[1]; P.lastT = now;
-      }
-    }, { passive: true });
-    c.addEventListener('pointerdown', function (e) {
-      var p = toUv(e);
-      if (p && self.t0) self.addRipple(p[0], p[1], 1.5);
-    }, { passive: true });
-    c.addEventListener('pointerleave', function () { self.ptr.lastX = null; });
+      P.x = (e.clientX - r.left) / r.width;
+      P.y = (e.clientY - r.top) / r.height;
+      if (!P.has) { P.sx = P.x; P.sy = P.y; P.has = true; }
+      P.target = 1;
+    };
+    c.addEventListener('pointermove', move, { passive: true });
+    c.addEventListener('pointerdown', function (e) { move(e); self.ptr.pulse = 1; }, { passive: true });
+    var leave = function () { self.ptr.target = 0; self.ptr.has = false; };
+    c.addEventListener('pointerleave', leave);
+    c.addEventListener('pointercancel', leave);
   };
 
   EngravingScene.prototype.addRipple = function (x, y, strength) {
@@ -250,15 +253,24 @@
     this._frame_pos(cw / ch);
   };
 
-  // Keep the bell tower and town in view on narrow screens; keep the sky on very wide ones.
+  // How much of the picture the screen shows. Narrow screens keep the bell tower and town in view;
+  // wide screens always show at least MIN_HEIGHT of the picture's height (sky to lake), so on very
+  // wide windows the picture no longer fills the width and fades into the paper at its sides.
+  var MIN_HEIGHT = 0.92;
   EngravingScene.prototype._frame_pos = function (aspect) {
     var ia = this.imgAspect || (this.image.naturalWidth / Math.max(1, this.image.naturalHeight)) || 1.78;
-    var visX = Math.min(1, aspect / ia), visY = Math.min(1, ia / aspect);
+    var sx = 1, sy = 1;
+    if (aspect > ia) sy = ia / aspect; else sx = aspect / ia;
+    if (sy < MIN_HEIGHT) { sx = MIN_HEIGHT / sy; sy = MIN_HEIGHT; }
     var fx = this.o.focusX;
-    var px = visX < 0.999 ? Math.min(1, Math.max(0, (fx - visX / 2) / (1 - visX))) : 0.5;
-    var py = visY < 0.999 ? 0.3 : 0.5;
+    var px = sx < 0.999 ? Math.min(1, Math.max(0, (fx - sx / 2) / (1 - sx))) : 0.5;
+    var py = sy < 0.999 ? 0.3 : 0.5;
     this.pos = [px, py];
-    if (this.image) this.image.style.objectPosition = (px * 100).toFixed(2) + '% ' + (py * 100).toFixed(2) + '%';
+    this.scale = [sx, sy];
+    if (this.image) {
+      this.image.style.objectFit = sx > 1.001 ? 'contain' : 'cover';
+      this.image.style.objectPosition = (px * 100).toFixed(2) + '% ' + (py * 100).toFixed(2) + '%';
+    }
   };
 
   EngravingScene.prototype._start = function () {
@@ -289,10 +301,7 @@
   EngravingScene.prototype._ambient = function (t) {
     if (this.reduced || t < this.nextDrop) return;
     this.nextDrop = t + 1.8 + Math.random() * 2.2;
-    var ia = this.imgAspect, c = this.canvas;
-    var aspect = c.clientWidth / Math.max(1, c.clientHeight);
-    var sx = 1, sy = 1;
-    if (aspect > ia) sy = ia / aspect; else sx = aspect / ia;
+    var sx = this.scale[0], sy = this.scale[1];
     for (var k = 0; k < 6; k++) {
       var ix = 0.22 + Math.random() * 0.74, iy = 0.82 + Math.random() * 0.15;
       var ux = (ix - this.pos[0] * (1 - sx)) / sx, uy = (iy - this.pos[1] * (1 - sy)) / sy;
@@ -302,17 +311,30 @@
 
   EngravingScene.prototype._draw = function () {
     var gl = this.gl, c = this.canvas, U = this.U;
-    var t = (performance.now() - this.t0) / 1000;
+    var now = performance.now();
+    var t = (now - this.t0) / 1000;
+    var dt = Math.min(3, Math.max(0.25, (now - (this.last || now)) / 16.667));
+    this.last = now;
     this._ambient(t);
+    var P = this.ptr;
+    var follow = 1 - Math.pow(0.82, dt);
+    P.sx += (P.x - P.sx) * follow;
+    P.sy += (P.y - P.sy) * follow;
+    P.hover += (P.target - P.hover) * (1 - Math.pow(0.88, dt));
+    P.pulse *= Math.pow(0.9, dt);
     gl.uniform2f(U.uRes, c.width, c.height);
     gl.uniform1f(U.uAspect, c.width / c.height);
     gl.uniform1f(U.uImgAspect, this.imgAspect);
     gl.uniform2f(U.uPos, this.pos[0], this.pos[1]);
+    gl.uniform2f(U.uS, this.scale[0], this.scale[1]);
     gl.uniform1f(U.uTime, t);
     gl.uniform1f(U.uDpr, this.dpr || 1);
     gl.uniform1f(U.uMotion, this.reduced ? 0 : 1);
     gl.uniform2f(U.uTexel, this.texel[0], this.texel[1]);
     gl.uniform4fv(U.uRip, this.rip);
+    gl.uniform2f(U.uMouse, P.sx, P.sy);
+    gl.uniform1f(U.uHover, P.hover);
+    gl.uniform1f(U.uPulse, this.reduced ? 0 : P.pulse);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   };
 
